@@ -1,3 +1,4 @@
+
 import React from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
@@ -134,7 +135,7 @@ const Export = () => {
                 
                 <div className="p-4 rounded-lg border">
                   <h3 className="font-medium mb-2 flex items-center">
-                    <FilePdf className="h-4 w-4 mr-2 text-red-600" />
+                    <FileText className="h-4 w-4 mr-2 text-red-600" />
                     Resumo Trimestral (PDF)
                   </h3>
                   <p className="text-sm text-muted-foreground">
