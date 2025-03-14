@@ -1,9 +1,8 @@
-
 import React from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, FileDown, FilePdf, FileSpreadsheet, Share2 } from 'lucide-react';
+import { Download, FileDown, FileText, FileSpreadsheet, Share2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 const Export = () => {
@@ -57,7 +56,7 @@ const Export = () => {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Relatório PDF</CardTitle>
-              <FilePdf className="h-5 w-5 text-red-600" />
+              <FileText className="h-5 w-5 text-red-600" />
             </div>
             <CardDescription>
               Gera um relatório detalhado em PDF

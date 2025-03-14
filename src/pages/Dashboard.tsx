@@ -25,6 +25,29 @@ import {
   financialSummary
 } from '@/data/mockData';
 
+// Define the TypeScript types
+type CategoryType = "income" | "expense";
+
+interface Subcategory {
+  id: string;
+  code: string;
+  name: string;
+  type: CategoryType;
+  value: number;
+}
+
+interface CategoryItem {
+  id: string;
+  code: string;
+  name: string;
+  type: CategoryType;
+  value: number;
+  subcategories: Subcategory[];
+}
+
+// Explicitly cast the data to ensure type safety
+const typedCategories = categoriesWithSubcategories as CategoryItem[];
+
 const Dashboard = () => {
   const [selectedMonth, setSelectedMonth] = useState(availableMonths[4]); // Default to Mai/25
 
@@ -124,7 +147,7 @@ const Dashboard = () => {
       <div className="mb-6">
         <h2 className="text-lg font-semibold mb-4">Detalhamento por Categoria</h2>
         <FinanceTable 
-          data={categoriesWithSubcategories}
+          data={typedCategories}
           currentMonth={selectedMonth}
         />
       </div>

@@ -20,12 +20,35 @@ import {
   financialSummary
 } from '@/data/mockData';
 
+// Define the TypeScript types
+type CategoryType = "income" | "expense";
+
+interface Subcategory {
+  id: string;
+  code: string;
+  name: string;
+  type: CategoryType;
+  value: number;
+}
+
+interface CategoryItem {
+  id: string;
+  code: string;
+  name: string;
+  type: CategoryType;
+  value: number;
+  subcategories: Subcategory[];
+}
+
+// Explicitly cast the data to ensure type safety
+const typedCategories = categoriesWithSubcategories as CategoryItem[];
+
 const Analysis = () => {
   const [selectedMonth, setSelectedMonth] = useState(availableMonths[4]); // Default to Mai/25
   const [activeTab, setActiveTab] = useState('receitas');
 
   // Filter categories based on active tab
-  const filteredCategories = categoriesWithSubcategories.filter(category => 
+  const filteredCategories = typedCategories.filter(category => 
     (activeTab === 'receitas' && category.type === 'income') || 
     (activeTab === 'despesas' && category.type === 'expense')
   );
