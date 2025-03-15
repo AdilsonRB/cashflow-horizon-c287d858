@@ -12,8 +12,15 @@ export interface ImportRecord {
   subcategories: number;
 }
 
-// Armazenamento local de importações
+// Estrutura para armazenar dados importados
+export interface ImportedFinancialData {
+  categories: any[];
+  monthlyData: any[];
+}
+
+// Armazenamento local de importações e dados
 const importHistory: ImportRecord[] = [];
+let importedData: ImportedFinancialData | null = null;
 
 /**
  * Processa um arquivo CSV no formato especificado
@@ -33,6 +40,7 @@ export const processCSVImport = async (csvContent: string): Promise<{ data: any,
     
     // Extrair os meses disponíveis do cabeçalho
     const months = header.slice(3).filter(m => m.trim() !== '');
+    console.log('Meses detectados:', months);
     
     // Processar as linhas de dados
     const categories: any[] = [];
@@ -74,7 +82,6 @@ export const processCSVImport = async (csvContent: string): Promise<{ data: any,
       if (isDuplicate) duplicatesFound++;
       
       // Determinar o tipo (receita ou despesa)
-      // IDs começando com 01x são tipicamente receitas
       const type = determineRecordType(id, description, Object.values(monthlyValues));
       
       const recordData = {
@@ -95,6 +102,18 @@ export const processCSVImport = async (csvContent: string): Promise<{ data: any,
     
     // Organizar subcategorias dentro de suas categorias
     const organizedData = organizeHierarchy(categories, subcategories);
+    
+    // Calcular dados mensais totais para gráficos
+    const monthlyTotals = calculateMonthlyTotals(categories, subcategories, months);
+    
+    // Armazenar os dados importados
+    importedData = {
+      categories: organizedData,
+      monthlyData: monthlyTotals
+    };
+    
+    // Salvar no localStorage para persistência
+    localStorage.setItem('financeImportedData', JSON.stringify(importedData));
     
     // Registrar a importação no histórico
     const importRecord: ImportRecord = {
@@ -125,6 +144,46 @@ export const processCSVImport = async (csvContent: string): Promise<{ data: any,
     });
     throw error;
   }
+};
+
+/**
+ * Calcula os totais mensais de receitas e despesas
+ */
+const calculateMonthlyTotals = (categories: any[], subcategories: any[], months: string[]) => {
+  const monthlyTotals = months.map(month => {
+    let receitas = 0;
+    let despesas = 0;
+    
+    // Somar valores das categorias
+    categories.forEach(category => {
+      if (category.values && category.values[month] !== undefined) {
+        if (category.type === 'income') {
+          receitas += category.values[month];
+        } else {
+          despesas += Math.abs(category.values[month]); // Usar valor absoluto para despesas
+        }
+      }
+    });
+    
+    // Somar valores das subcategorias
+    subcategories.forEach(subcategory => {
+      if (subcategory.values && subcategory.values[month] !== undefined) {
+        if (subcategory.type === 'income') {
+          receitas += subcategory.values[month];
+        } else {
+          despesas += Math.abs(subcategory.values[month]); // Usar valor absoluto para despesas
+        }
+      }
+    });
+    
+    return {
+      month: month,
+      receitas,
+      despesas
+    };
+  });
+  
+  return monthlyTotals;
 };
 
 /**
@@ -245,6 +304,40 @@ export const getImportHistory = (): ImportRecord[] => {
 };
 
 /**
+ * Obtém os dados financeiros importados
+ */
+export const getImportedFinancialData = (): ImportedFinancialData | null => {
+  try {
+    if (importedData) return importedData;
+    
+    const stored = localStorage.getItem('financeImportedData');
+    if (!stored) return null;
+    
+    return JSON.parse(stored);
+  } catch (error) {
+    console.error('Erro ao obter dados financeiros:', error);
+    return null;
+  }
+};
+
+/**
+ * Obtém dados de uma categoria específica para um mês
+ */
+export const getCategoryDataForMonth = (categoryId: string, month: string): any => {
+  const data = getImportedFinancialData();
+  if (!data) return null;
+  
+  const category = data.categories.find(cat => cat.id === categoryId);
+  if (!category) return null;
+  
+  // Retornar os valores específicos para o mês solicitado
+  return {
+    ...category,
+    value: category.values[month] || 0
+  };
+};
+
+/**
  * Remove uma importação específica
  */
 export const removeImport = (importId: string): boolean => {
@@ -273,7 +366,8 @@ export const clearAllImportedData = (): boolean => {
     localStorage.setItem('financeImportHistory', JSON.stringify([]));
     
     // Limpar dados financeiros
-    // Na implementação real, teríamos que redefinir os dados no storage
+    localStorage.removeItem('financeImportedData');
+    importedData = null;
     
     return true;
   } catch (error) {

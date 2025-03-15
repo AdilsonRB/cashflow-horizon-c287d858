@@ -1,3 +1,4 @@
+
 import { useState, useRef } from 'react';
 import { Upload, File, AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,9 @@ import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 
 const FinanceImport = () => {
-  const [importStatus, setImportStatus] = useState<'idle' | 'processing' | 'success' | 'error' | 'review'>('idle');
+  // Define state types explicitly to avoid TypeScript errors
+  type ImportStatus = 'idle' | 'processing' | 'success' | 'error' | 'review';
+  const [importStatus, setImportStatus] = useState<ImportStatus>('idle');
   const [fileSelected, setFileSelected] = useState<File | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
@@ -92,6 +95,7 @@ const FinanceImport = () => {
       if (fileSelected.name.endsWith('.csv')) {
         reader.readAsText(fileSelected);
       } else {
+        // Para arquivos Excel, usamos a simulação por enquanto
         setTimeout(() => {
           clearInterval(progressInterval);
           setProgress(100);

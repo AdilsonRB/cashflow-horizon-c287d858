@@ -18,7 +18,7 @@ import {
   FileQuestion
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { getImportHistory } from '@/lib/importProcessors';
+import { getImportHistory, getImportedFinancialData } from '@/lib/importProcessors';
 import { availableMonths } from '@/data/mockData';
 
 // Tipos
@@ -77,7 +77,7 @@ const emptyTopExpenses = [
 const emptyCategories: CategoryItem[] = [];
 
 const Dashboard = () => {
-  const [selectedMonth, setSelectedMonth] = useState(availableMonths[4]); // Default to Mai/25
+  const [selectedMonth, setSelectedMonth] = useState(availableMonths[0]); // Default to Jan/25
   const [hasData, setHasData] = useState(false);
   const [financialSummary, setFinancialSummary] = useState(emptyFinancialSummary);
   const [monthlyData, setMonthlyData] = useState(emptyMonthlyData);
@@ -85,33 +85,153 @@ const Dashboard = () => {
   const [topExpenses, setTopExpenses] = useState(emptyTopExpenses);
   const [categories, setCategories] = useState<CategoryItem[]>(emptyCategories);
 
-  // Verificar se existem dados importados
+  // Carregar dados com base no mês selecionado
   useEffect(() => {
     const importHistory = getImportHistory();
     const dataExists = importHistory.length > 0;
     setHasData(dataExists);
     
-    // Aqui carregaríamos os dados reais do localStorage ou de uma API
-    // Por enquanto, simulamos o estado vazio quando não há importações
     if (!dataExists) {
+      // Definir todos os dados para zero quando não houver importação
       setFinancialSummary(emptyFinancialSummary);
       setMonthlyData(emptyMonthlyData);
       setExpenseDistribution(emptyExpenseDistribution);
       setTopExpenses(emptyTopExpenses);
       setCategories(emptyCategories);
     } else {
-      // Se houver dados, carregamos os dados do mockData temporariamente
-      // Em uma implementação real, carregaríamos do localStorage ou API
-      // utilizando o processamento dos dados importados
-      import('@/data/mockData').then(mockData => {
-        setFinancialSummary(mockData.financialSummary);
-        setMonthlyData(mockData.monthlyData);
-        setExpenseDistribution(mockData.expenseDistribution);
-        setTopExpenses(mockData.topExpenses);
-        setCategories(mockData.categoriesWithSubcategories as CategoryItem[]);
-      });
+      // Carregar dados reais do localStorage
+      const importedData = getImportedFinancialData();
+      
+      if (importedData) {
+        // Usar dados dos meses importados
+        setMonthlyData(importedData.monthlyData);
+        
+        // Filtrar categorias e calcular valores para o mês selecionado
+        const categoriesWithMonthlyValues = importedData.categories.map((category: any) => {
+          // Verificar se o mês selecionado existe nos dados
+          const monthValue = category.values && category.values[selectedMonth] 
+            ? category.values[selectedMonth] 
+            : 0;
+            
+          // Processar subcategorias com valores do mês
+          const subcategoriesWithValues = category.subcategories?.map((sub: any) => {
+            const subMonthValue = sub.values && sub.values[selectedMonth]
+              ? sub.values[selectedMonth]
+              : 0;
+              
+            return {
+              ...sub,
+              value: subMonthValue
+            };
+          }) || [];
+          
+          return {
+            ...category,
+            value: monthValue,
+            subcategories: subcategoriesWithValues
+          };
+        });
+        
+        setCategories(categoriesWithMonthlyValues);
+        
+        // Calcular resumo financeiro
+        const totalIncome = calculateTotal(categoriesWithMonthlyValues, 'income');
+        const totalExpenses = calculateTotal(categoriesWithMonthlyValues, 'expense');
+        
+        setFinancialSummary({
+          totalIncome,
+          totalExpenses,
+          grossResult: totalIncome - totalExpenses,
+          adjustedResult: totalIncome - totalExpenses * 0.9, // Exemplo de ajuste
+          incomeChange: 0, // Seria calculado com base no mês anterior
+          expensesChange: 0,
+          resultChange: 0
+        });
+        
+        // Gerar distribuição de despesas para o mês selecionado
+        const expensesByCategory = generateExpenseDistribution(categoriesWithMonthlyValues);
+        setExpenseDistribution(expensesByCategory);
+        
+        // Gerar top despesas
+        const topExpensesList = generateTopExpenses(categoriesWithMonthlyValues);
+        setTopExpenses(topExpensesList);
+      }
     }
-  }, []);
+  }, [selectedMonth]);
+
+  // Função auxiliar para calcular total de receitas ou despesas
+  const calculateTotal = (categories: any[], type: 'income' | 'expense'): number => {
+    return categories.reduce((total, category) => {
+      // Soma da categoria
+      const categoryValue = category.type === type ? Math.abs(category.value) : 0;
+      
+      // Soma das subcategorias
+      const subcategoriesValue = category.subcategories?.reduce((subTotal: number, sub: any) => {
+        return subTotal + (sub.type === type ? Math.abs(sub.value) : 0);
+      }, 0) || 0;
+      
+      return total + categoryValue + subcategoriesValue;
+    }, 0);
+  };
+
+  // Função para gerar distribuição de despesas
+  const generateExpenseDistribution = (categories: any[]): any[] => {
+    const colorPalette = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899'];
+    
+    // Se não houver dados, retornar lista vazia
+    if (!hasData) return emptyExpenseDistribution;
+    
+    // Obter principais categorias de despesa
+    const expenseCategories = categories
+      .filter(cat => cat.type === 'expense' && Math.abs(cat.value) > 0)
+      .map((cat, index) => ({
+        name: cat.name,
+        value: Math.abs(cat.value),
+        color: colorPalette[index % colorPalette.length]
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 6);
+      
+    // Se não houver categorias, retornar lista vazia
+    return expenseCategories.length > 0 ? expenseCategories : emptyExpenseDistribution;
+  };
+
+  // Função para gerar top despesas
+  const generateTopExpenses = (categories: any[]): any[] => {
+    if (!hasData) return emptyTopExpenses;
+    
+    // Obter todas as subcategorias de despesa
+    const allExpenses: any[] = [];
+    
+    categories.forEach(category => {
+      if (category.type === 'expense') {
+        // Adicionar categoria principal
+        allExpenses.push({
+          name: category.name,
+          value: Math.abs(category.value),
+          code: category.code
+        });
+        
+        // Adicionar subcategorias
+        category.subcategories?.forEach((sub: any) => {
+          if (sub.type === 'expense') {
+            allExpenses.push({
+              name: sub.name,
+              value: Math.abs(sub.value),
+              code: sub.code
+            });
+          }
+        });
+      }
+    });
+    
+    // Ordenar por valor e pegar os 5 maiores
+    const topExpenses = allExpenses
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
+      
+    return topExpenses.length > 0 ? topExpenses : emptyTopExpenses;
+  };
 
   return (
     <MainLayout>
