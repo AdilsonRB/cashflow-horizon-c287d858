@@ -15,7 +15,7 @@ const Import = () => {
         </p>
       </div>
       
-      <Alert variant="warning" className="mb-6">
+      <Alert variant="destructive" className="mb-6">
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Atenção</AlertTitle>
         <AlertDescription>

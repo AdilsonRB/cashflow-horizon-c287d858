@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { Upload, File, AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,7 +24,6 @@ const FinanceImport = () => {
     const file = e.target.files?.[0] || null;
     
     if (file) {
-      // Check if the file is a CSV or Excel file
       if (!file.name.endsWith('.csv') && !file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
         setErrorMessage('Por favor, selecione um arquivo CSV ou Excel válido (.csv, .xlsx ou .xls)');
         setFileSelected(null);
@@ -45,10 +43,8 @@ const FinanceImport = () => {
     setImportStatus('processing');
     setProgress(0);
     
-    // Limpar dados existentes antes da importação
     clearAllImportedData();
     
-    // Simulate processing with progress
     const progressInterval = setInterval(() => {
       setProgress(prev => {
         if (prev >= 90) {
@@ -60,14 +56,12 @@ const FinanceImport = () => {
     }, 300);
 
     try {
-      // This is where the actual CSV processing would happen
       const reader = new FileReader();
       
       reader.onload = async (event) => {
         if (event.target?.result) {
           const csvContent = event.target.result as string;
           
-          // Process the CSV content
           const { data, duplicatesFound } = await processCSVImport(csvContent);
           
           clearInterval(progressInterval);
@@ -95,12 +89,9 @@ const FinanceImport = () => {
         setImportStatus('error');
       };
       
-      // Read the file as text (for CSV)
       if (fileSelected.name.endsWith('.csv')) {
         reader.readAsText(fileSelected);
       } else {
-        // For Excel files, we'd need a different approach
-        // For now, we'll simulate success
         setTimeout(() => {
           clearInterval(progressInterval);
           setProgress(100);
@@ -119,7 +110,6 @@ const FinanceImport = () => {
   };
   
   const confirmImport = () => {
-    // Here we would commit the data after review
     setImportStatus('success');
     setProgress(100);
     toast({
