@@ -13,13 +13,23 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 
+interface Subcategory {
+  id: string;
+  code: string;
+  name: string;
+  type: 'income' | 'expense';
+  value: number;
+  monthlyValues?: Record<string, number>;
+}
+
 interface CategoryItem {
   id: string;
   code: string;
   name: string;
   type: 'income' | 'expense';
   value: number;
-  subcategories?: CategoryItem[];
+  monthlyValues?: Record<string, number>;
+  subcategories?: Subcategory[];
 }
 
 interface FinanceTableProps {
@@ -46,6 +56,16 @@ const FinanceTable: React.FC<FinanceTableProps> = ({ data, currentMonth }) => {
     if (type === 'income') return 'text-income';
     if (type === 'expense') return 'text-expense';
     return '';
+  };
+
+  // Função para obter o valor mensal específico ou usar o valor padrão
+  const getValueForMonth = (item: CategoryItem | Subcategory, month: string): number => {
+    // Se temos valores mensais, usar o valor do mês atual
+    if (item.monthlyValues && month in item.monthlyValues) {
+      return item.monthlyValues[month];
+    }
+    // Caso contrário, usar o valor padrão
+    return item.value;
   };
 
   return (
@@ -79,8 +99,16 @@ const FinanceTable: React.FC<FinanceTableProps> = ({ data, currentMonth }) => {
                   </div>
                 </TableCell>
                 <TableCell>{category.code}</TableCell>
-                <TableCell className={cn("text-right font-medium", getCategoryValueClass(category.type, category.value))}>
-                  {formatCurrency(category.value)}
+                <TableCell 
+                  className={cn(
+                    "text-right font-medium", 
+                    getCategoryValueClass(
+                      category.type, 
+                      getValueForMonth(category, currentMonth)
+                    )
+                  )}
+                >
+                  {formatCurrency(getValueForMonth(category, currentMonth))}
                 </TableCell>
               </TableRow>
               
@@ -91,8 +119,16 @@ const FinanceTable: React.FC<FinanceTableProps> = ({ data, currentMonth }) => {
                     {subcategory.name}
                   </TableCell>
                   <TableCell>{subcategory.code}</TableCell>
-                  <TableCell className={cn("text-right font-medium", getCategoryValueClass(subcategory.type, subcategory.value))}>
-                    {formatCurrency(subcategory.value)}
+                  <TableCell 
+                    className={cn(
+                      "text-right font-medium", 
+                      getCategoryValueClass(
+                        subcategory.type, 
+                        getValueForMonth(subcategory, currentMonth)
+                      )
+                    )}
+                  >
+                    {formatCurrency(getValueForMonth(subcategory, currentMonth))}
                   </TableCell>
                 </TableRow>
               ))}
