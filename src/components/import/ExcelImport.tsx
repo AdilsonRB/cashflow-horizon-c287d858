@@ -10,8 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 
 const FinanceImport = () => {
-  const [fileSelected, setFileSelected] = useState<File | null>(null);
   const [importStatus, setImportStatus] = useState<'idle' | 'processing' | 'success' | 'error' | 'review'>('idle');
+  const [fileSelected, setFileSelected] = useState<File | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [duplicates, setDuplicates] = useState<number>(0);
