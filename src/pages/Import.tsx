@@ -15,11 +15,12 @@ const Import = () => {
         </p>
       </div>
       
-      <Alert variant="destructive" className="mb-6">
+      <Alert variant="destructive" className="mb-6 bg-red-50">
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Atenção</AlertTitle>
         <AlertDescription>
-          Antes de importar, os dados existentes serão completamente limpos.
+          <strong>Antes de importar, os dados existentes serão completamente limpos.</strong>
+          <br />
           Certifique-se de fazer um backup ou exportar relatórios importantes antes de prosseguir.
         </AlertDescription>
       </Alert>

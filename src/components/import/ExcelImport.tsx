@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 
 const FinanceImport = () => {
-  // Define state types explicitly to avoid TypeScript errors
+  // Define state types explicitly with a union type to avoid TypeScript errors
   type ImportStatus = 'idle' | 'processing' | 'success' | 'error' | 'review';
   const [importStatus, setImportStatus] = useState<ImportStatus>('idle');
   const [fileSelected, setFileSelected] = useState<File | null>(null);
@@ -46,6 +46,7 @@ const FinanceImport = () => {
     setImportStatus('processing');
     setProgress(0);
     
+    // Clear all imported data before starting new import
     clearAllImportedData();
     
     const progressInterval = setInterval(() => {
@@ -141,6 +142,9 @@ const FinanceImport = () => {
     setProgress(0);
     setDuplicates(0);
     setPreviewData(null);
+    
+    // Ensure data is properly cleared
+    clearAllImportedData();
   };
 
   const viewDashboard = () => {

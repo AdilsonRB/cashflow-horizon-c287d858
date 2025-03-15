@@ -128,6 +128,8 @@ export const processCSVImport = async (csvContent: string): Promise<{ data: any,
       subcategories: subcategories.length
     };
     
+    // Clear the existing import history array
+    importHistory.length = 0;
     importHistory.push(importRecord);
     
     // Atualizar os dados no localStorage para persistência
@@ -336,10 +338,17 @@ const generateImportId = (): string => {
 export const getImportHistory = (): ImportRecord[] => {
   try {
     const stored = localStorage.getItem('financeImportHistory');
-    return stored ? JSON.parse(stored) : importHistory;
+    // If there's stored data, parse it and return
+    if (stored) {
+      const parsedData = JSON.parse(stored);
+      // Ensure we're returning an array
+      return Array.isArray(parsedData) ? parsedData : [];
+    }
+    // If no stored data, return empty array
+    return [];
   } catch (error) {
     console.error('Erro ao obter histórico de importações:', error);
-    return importHistory;
+    return [];
   }
 };
 
@@ -387,8 +396,11 @@ export const removeImport = (importId: string): boolean => {
     
     localStorage.setItem('financeImportHistory', JSON.stringify(updatedHistory));
     
-    // Aqui também seria necessário remover os dados financeiros associados
-    // Para fins de simulação, assumimos que isso foi feito
+    // Se removeu todas as importações, limpar também os dados financeiros
+    if (updatedHistory.length === 0) {
+      localStorage.removeItem('financeImportedData');
+      importedData = null;
+    }
     
     return true;
   } catch (error) {
@@ -404,7 +416,7 @@ export const clearAllImportedData = (): boolean => {
   try {
     console.log("Clearing all imported data");
     // Limpar histórico de importações
-    localStorage.setItem('financeImportHistory', JSON.stringify([]));
+    localStorage.removeItem('financeImportHistory');
     
     // Limpar dados financeiros
     localStorage.removeItem('financeImportedData');
