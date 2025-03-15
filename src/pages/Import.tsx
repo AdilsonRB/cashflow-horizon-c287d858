@@ -2,6 +2,8 @@
 import React from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import FinanceImport from '@/components/import/ExcelImport';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 const Import = () => {
   return (
@@ -12,6 +14,15 @@ const Import = () => {
           Importe seus dados financeiros diretamente dos seus arquivos CSV ou Excel
         </p>
       </div>
+      
+      <Alert variant="warning" className="mb-6">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Atenção</AlertTitle>
+        <AlertDescription>
+          Antes de importar, os dados existentes serão completamente limpos.
+          Certifique-se de fazer um backup ou exportar relatórios importantes antes de prosseguir.
+        </AlertDescription>
+      </Alert>
       
       <div className="max-w-4xl mx-auto">
         <FinanceImport />

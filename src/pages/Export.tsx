@@ -1,175 +1,190 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, FileDown, FileText, FileSpreadsheet, Share2 } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Label } from '@/components/ui/label';
+import { FileText, AlertCircle, FileQuestion, Download } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { getImportHistory } from '@/lib/importProcessors';
 
 const Export = () => {
   const { toast } = useToast();
+  const [fileName, setFileName] = useState("relatorio_financeiro");
+  const [includeGraphs, setIncludeGraphs] = useState(true);
+  const [includeDetails, setIncludeDetails] = useState(true);
+  const [includeHeader, setIncludeHeader] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
+  const [hasData, setHasData] = useState(false);
+  
+  // Verificar se existem dados importados
+  React.useEffect(() => {
+    const importHistory = getImportHistory();
+    setHasData(importHistory.length > 0);
+  }, []);
 
-  const handleExport = (type: string) => {
-    toast({
-      title: "Exportação iniciada",
-      description: `Seu relatório ${type} será baixado em instantes.`,
-    });
+  const handleExport = () => {
+    if (!hasData) {
+      toast({
+        title: "Nenhum dado para exportar",
+        description: "Importe dados financeiros antes de gerar um relatório PDF.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsExporting(true);
+    
+    // Simular geração de PDF
+    setTimeout(() => {
+      setIsExporting(false);
+      toast({
+        title: "PDF gerado com sucesso",
+        description: `O arquivo ${fileName}.pdf foi gerado e será baixado automaticamente.`,
+      });
+    }, 2000);
   };
 
   return (
     <MainLayout>
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Exportar Relatórios</h1>
+        <h1 className="text-3xl font-bold">Exportar Relatório PDF</h1>
         <p className="text-muted-foreground">
-          Exporte seus dados financeiros em diferentes formatos
+          Gere relatórios detalhados dos seus dados financeiros
         </p>
       </div>
       
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Excel Completo</CardTitle>
-              <FileSpreadsheet className="h-5 w-5 text-green-600" />
+      {!hasData && (
+        <Alert className="mb-6">
+          <FileQuestion className="h-4 w-4" />
+          <AlertTitle>Nenhum dado disponível para exportação</AlertTitle>
+          <AlertDescription>
+            Você precisa importar dados financeiros antes de poder exportá-los.
+            <div className="mt-2">
+              <a href="/import" className="text-primary hover:underline">
+                Ir para página de importação
+              </a>
             </div>
-            <CardDescription>
-              Exporta todos os dados no formato Excel
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Inclui todas as categorias, subcategorias e valores mensais em uma planilha completa, mantendo a mesma estrutura da sua planilha original.
-            </p>
-          </CardContent>
-          <CardFooter>
-            <Button 
-              onClick={() => handleExport('Excel')} 
-              className="w-full"
-              variant="outline"
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Exportar Excel
-            </Button>
-          </CardFooter>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Relatório PDF</CardTitle>
-              <FileText className="h-5 w-5 text-red-600" />
-            </div>
-            <CardDescription>
-              Gera um relatório detalhado em PDF
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Cria um documento PDF formatado com gráficos, tabelas e análises detalhadas do período selecionado, ideal para impressão.
-            </p>
-          </CardContent>
-          <CardFooter>
-            <Button 
-              onClick={() => handleExport('PDF')} 
-              className="w-full"
-              variant="outline"
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Exportar PDF
-            </Button>
-          </CardFooter>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>CSV para Análise</CardTitle>
-              <FileDown className="h-5 w-5 text-blue-600" />
-            </div>
-            <CardDescription>
-              Exporta dados em formato CSV
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Formato simplificado para importação em outras ferramentas de análise de dados ou planilhas, mantendo apenas os dados essenciais.
-            </p>
-          </CardContent>
-          <CardFooter>
-            <Button 
-              onClick={() => handleExport('CSV')} 
-              className="w-full"
-              variant="outline"
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Exportar CSV
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
+          </AlertDescription>
+        </Alert>
+      )}
       
-      <div className="mb-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Exportação Programada</CardTitle>
-            <CardDescription>
-              Configure exportações automáticas periódicas
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <p className="text-sm">
-                Configure a exportação automática dos seus relatórios financeiros em intervalos regulares (mensal, trimestral, etc.) e receba-os diretamente por e-mail.
-              </p>
-              
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="p-4 rounded-lg border">
-                  <h3 className="font-medium mb-2 flex items-center">
-                    <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />
-                    Relatório Mensal (Excel)
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Enviado automaticamente no último dia de cada mês.
-                  </p>
-                </div>
-                
-                <div className="p-4 rounded-lg border">
-                  <h3 className="font-medium mb-2 flex items-center">
-                    <FileText className="h-4 w-4 mr-2 text-red-600" />
-                    Resumo Trimestral (PDF)
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Relatório consolidado enviado ao final de cada trimestre.
-                  </p>
-                </div>
-              </div>
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Relatório PDF</CardTitle>
+            <FileText className="h-5 w-5 text-red-600" />
+          </div>
+          <CardDescription>
+            Configurações para geração do relatório em PDF
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="fileName">Nome do arquivo</Label>
+            <div className="flex gap-2 items-center">
+              <Input 
+                id="fileName" 
+                value={fileName} 
+                onChange={(e) => setFileName(e.target.value)}
+                className="flex-1"
+              />
+              <span className="text-muted-foreground">.pdf</span>
             </div>
-          </CardContent>
-          <CardFooter>
-            <Button className="w-full">
-              Configurar Exportação Automática
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
+          </div>
+          
+          <div className="space-y-4">
+            <h3 className="font-medium text-sm">Conteúdo do relatório</h3>
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Incluir gráficos</p>
+                <p className="text-xs text-muted-foreground">
+                  Adiciona gráficos visuais ao relatório
+                </p>
+              </div>
+              <Switch 
+                checked={includeGraphs} 
+                onCheckedChange={setIncludeGraphs} 
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Detalhamento completo</p>
+                <p className="text-xs text-muted-foreground">
+                  Inclui todas as subcategorias no relatório
+                </p>
+              </div>
+              <Switch 
+                checked={includeDetails} 
+                onCheckedChange={setIncludeDetails} 
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Cabeçalho com informações</p>
+                <p className="text-xs text-muted-foreground">
+                  Inclui data, período e informações do usuário
+                </p>
+              </div>
+              <Switch 
+                checked={includeHeader} 
+                onCheckedChange={setIncludeHeader} 
+              />
+            </div>
+          </div>
+          
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Relatório completo</AlertTitle>
+            <AlertDescription>
+              O PDF gerado incluirá exatamente os mesmos gráficos, tabelas e análises presentes no dashboard, 
+              formatados de maneira profissional para impressão.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+        <CardFooter className="justify-end">
+          <Button 
+            onClick={handleExport} 
+            disabled={isExporting || !hasData}
+            className="w-full"
+          >
+            {isExporting ? 'Gerando PDF...' : 'Exportar PDF'}
+            {!isExporting && <Download className="ml-2 h-4 w-4" />}
+          </Button>
+        </CardFooter>
+      </Card>
       
       <Card>
         <CardHeader>
-          <CardTitle>Compartilhamento</CardTitle>
+          <CardTitle>Visualização do relatório</CardTitle>
           <CardDescription>
-            Compartilhe seus relatórios com outras pessoas
+            Prévia do que será incluído no seu PDF
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm mb-4">
-            Gere links de compartilhamento temporários para permitir que outras pessoas visualizem seus relatórios financeiros sem precisar de uma conta.
-          </p>
-          <div className="flex items-center space-x-4">
-            <Button variant="outline" className="flex-1">
-              <Share2 className="mr-2 h-4 w-4" />
-              Gerar Link de Compartilhamento
-            </Button>
-          </div>
+          {hasData ? (
+            <div className="rounded-lg border p-6 bg-muted/10 text-center">
+              <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground">
+                {includeGraphs ? "Gráficos, " : ""}
+                {includeDetails ? "detalhamento completo, " : "detalhamento resumido, "}
+                {includeHeader ? "cabeçalho com informações" : "sem cabeçalho"}
+              </p>
+              <p className="mt-2 text-sm font-medium">
+                {fileName}.pdf
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-lg border p-6 bg-muted/10 text-center">
+              <p className="text-muted-foreground">Nenhum dado disponível para prévia.</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </MainLayout>

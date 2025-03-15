@@ -4,8 +4,8 @@ import { Upload, File, AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-r
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useToast } from '@/components/ui/use-toast';
-import { processCSVImport } from '@/lib/importProcessors';
+import { useToast } from '@/hooks/use-toast';
+import { processCSVImport, clearAllImportedData } from '@/lib/importProcessors';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
@@ -44,6 +44,9 @@ const FinanceImport = () => {
     
     setImportStatus('processing');
     setProgress(0);
+    
+    // Limpar dados existentes antes da importação
+    clearAllImportedData();
     
     // Simulate processing with progress
     const progressInterval = setInterval(() => {
@@ -192,45 +195,61 @@ const FinanceImport = () => {
               </div>
             </AlertDescription>
           </Alert>
-        ) : importStatus === 'processing' ? (
-          <div className="space-y-2">
-            <div className="flex justify-between mb-1">
-              <span className="text-sm">Processando...</span>
-              <span className="text-sm">{progress}%</span>
-            </div>
-            <Progress value={progress} className="w-full" />
-          </div>
         ) : (
-          <div className="border-2 border-dashed rounded-lg p-6 text-center">
-            <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-4">
-              <File className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <h3 className="font-medium mb-2">Arraste e solte seu arquivo CSV ou Excel aqui</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Ou clique para selecionar um arquivo .csv, .xlsx ou .xls
-            </p>
-            <div className="relative">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                onChange={handleFileChange}
-                disabled={importStatus === 'processing'}
-              />
-              <Button variant="outline" className="w-full">
-                Selecionar Arquivo
-              </Button>
-            </div>
-            {fileSelected && (
-              <div className="mt-4 p-2 bg-muted rounded flex items-center">
-                <File className="h-4 w-4 mr-2" />
-                <span className="text-sm truncate">{fileSelected.name}</span>
-                <Badge className="ml-2" variant="outline">
-                  {fileSelected.name.split('.').pop()?.toUpperCase()}
-                </Badge>
+          <>
+            {importStatus === 'processing' ? (
+              <div className="space-y-2">
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm">Processando...</span>
+                  <span className="text-sm">{progress}%</span>
+                </div>
+                <Progress value={progress} className="w-full" />
+              </div>
+            ) : (
+              <div className="border-2 border-dashed rounded-lg p-6 text-center">
+                <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-4">
+                  <File className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="font-medium mb-2">Arraste e solte seu arquivo CSV ou Excel aqui</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Ou clique para selecionar um arquivo .csv, .xlsx ou .xls
+                </p>
+                <div className="relative">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv,.xlsx,.xls"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    onChange={handleFileChange}
+                    disabled={importStatus === 'processing'}
+                  />
+                  <Button variant="outline" className="w-full">
+                    Selecionar Arquivo
+                  </Button>
+                </div>
+                {fileSelected && (
+                  <div className="mt-4 p-2 bg-muted rounded flex items-center">
+                    <File className="h-4 w-4 mr-2" />
+                    <span className="text-sm truncate">{fileSelected.name}</span>
+                    <Badge className="ml-2" variant="outline">
+                      {fileSelected.name.split('.').pop()?.toUpperCase()}
+                    </Badge>
+                  </div>
+                )}
               </div>
             )}
+          </>
+        )}
+        
+        {previewData && importStatus === 'review' && (
+          <div className="mt-4 border rounded-lg p-4">
+            <h3 className="font-medium mb-2">Pré-visualização dos dados:</h3>
+            <div className="max-h-60 overflow-y-auto">
+              <pre className="text-xs whitespace-pre-wrap bg-muted p-2 rounded">
+                {JSON.stringify(previewData.slice(0, 3), null, 2)}
+                {previewData.length > 3 && "...e mais " + (previewData.length - 3) + " categorias"}
+              </pre>
+            </div>
           </div>
         )}
       </CardContent>

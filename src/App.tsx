@@ -10,6 +10,7 @@ import Export from "./pages/Export";
 import Evolution from "./pages/Evolution";
 import Import from "./pages/Import";
 import Settings from "./pages/Settings";
+import Analysis from "./pages/Analysis";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/evolution" element={<Evolution />} />
           <Route path="/import" element={<Import />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/analysis" element={<Analysis />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

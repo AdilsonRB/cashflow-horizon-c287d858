@@ -1,65 +1,68 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Trash2, RefreshCw, FileSearch, AlertTriangle } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
-import { Tab, Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { AlertCircle, Clock, FileText, Trash2, FileX, CheckCircle } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
 import { getImportHistory, removeImport, clearAllImportedData, ImportRecord } from '@/lib/importProcessors';
 
 const Settings = () => {
-  const [importHistory, setImportHistory] = useState<ImportRecord[]>([]);
-  const [selectedTab, setSelectedTab] = useState<string>('importacoes');
+  const [importHistory, setImportHistory] = useState<ImportRecord[]>(getImportHistory());
+  const [isClearing, setIsClearing] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    // Carregar histórico de importações
-    loadImportHistory();
-  }, []);
-
-  const loadImportHistory = () => {
-    const history = getImportHistory();
-    setImportHistory(history);
+  
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
   };
-
+  
   const handleRemoveImport = (importId: string) => {
-    const success = removeImport(importId);
-    
-    if (success) {
-      loadImportHistory();
+    if (removeImport(importId)) {
+      setImportHistory(getImportHistory());
       toast({
         title: "Importação removida",
-        description: "Os dados associados a esta importação foram removidos com sucesso.",
+        description: "A importação foi removida com sucesso e os dados atualizados.",
       });
     } else {
       toast({
-        title: "Erro ao remover importação",
-        description: "Ocorreu um erro ao tentar remover esta importação.",
-        variant: "destructive",
+        title: "Erro ao remover",
+        description: "Não foi possível remover a importação selecionada.",
+        variant: "destructive"
       });
     }
   };
-
-  const handleClearAllData = () => {
-    const success = clearAllImportedData();
-    
-    if (success) {
-      loadImportHistory();
-      toast({
-        title: "Dados limpos",
-        description: "Todos os dados financeiros importados foram removidos com sucesso.",
-      });
-    } else {
-      toast({
-        title: "Erro ao limpar dados",
-        description: "Ocorreu um erro ao tentar limpar todos os dados importados.",
-        variant: "destructive",
-      });
-    }
+  
+  const handleClearAll = () => {
+    setIsClearing(true);
+    setTimeout(() => {
+      if (clearAllImportedData()) {
+        setImportHistory([]);
+        toast({
+          title: "Dados limpos",
+          description: "Todos os dados importados foram removidos com sucesso.",
+        });
+      } else {
+        toast({
+          title: "Erro ao limpar",
+          description: "Não foi possível limpar todos os dados importados.",
+          variant: "destructive"
+        });
+      }
+      setIsClearing(false);
+    }, 1000);
   };
 
   return (
@@ -67,260 +70,200 @@ const Settings = () => {
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Configurações</h1>
         <p className="text-muted-foreground">
-          Gerencie suas importações e configure o sistema
+          Gerencie as configurações e dados do sistema
         </p>
       </div>
-
-      <Tabs defaultValue={selectedTab} onValueChange={setSelectedTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="importacoes">Importações</TabsTrigger>
-          <TabsTrigger value="preferencias">Preferências</TabsTrigger>
-          <TabsTrigger value="categorias">Categorias</TabsTrigger>
+      
+      <Tabs defaultValue="imports" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="imports">Importações</TabsTrigger>
+          <TabsTrigger value="general">Geral</TabsTrigger>
+          <TabsTrigger value="export">Exportação</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="importacoes" className="space-y-4">
+        
+        <TabsContent value="imports">
           <Card>
             <CardHeader>
               <CardTitle>Histórico de Importações</CardTitle>
               <CardDescription>
-                Gerencie arquivos importados e evite duplicidades
+                Gerencie os arquivos que foram importados para o sistema
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {importHistory.length > 0 ? (
+              {importHistory.length === 0 ? (
+                <Alert className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Nenhuma importação encontrada</AlertTitle>
+                  <AlertDescription>
+                    Você ainda não importou nenhum arquivo para o sistema.
+                  </AlertDescription>
+                </Alert>
+              ) : (
                 <Table>
+                  <TableCaption>Lista de importações realizadas</TableCaption>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Arquivo</TableHead>
-                      <TableHead>Data de Importação</TableHead>
+                      <TableHead>Data</TableHead>
                       <TableHead>Registros</TableHead>
-                      <TableHead>Categorias</TableHead>
-                      <TableHead>Subcategorias</TableHead>
-                      <TableHead className="w-[100px]">Ações</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {importHistory.map((record) => (
                       <TableRow key={record.id}>
-                        <TableCell>{record.fileName}</TableCell>
+                        <TableCell className="font-medium">{record.fileName}</TableCell>
+                        <TableCell>{formatDate(record.dateImported)}</TableCell>
                         <TableCell>
-                          {format(new Date(record.dateImported), 'dd/MM/yyyy HH:mm')}
-                        </TableCell>
-                        <TableCell>{record.rowCount}</TableCell>
-                        <TableCell>{record.categories}</TableCell>
-                        <TableCell>{record.subcategories}</TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button variant="outline" size="icon" title="Visualizar">
-                              <FileSearch className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="destructive" size="icon" title="Remover">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Remover importação</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Esta ação não pode ser desfeita. Isso removerá permanentemente os dados desta importação.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleRemoveImport(record.id)}>
-                                    Continuar
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                          {record.rowCount} registros
+                          <div className="text-xs text-muted-foreground">
+                            {record.categories} categorias, {record.subcategories} subcategorias
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            <CheckCircle className="h-3 w-3 mr-1" /> Concluído
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => handleRemoveImport(record.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              ) : (
-                <div className="text-center py-6">
-                  <p className="text-muted-foreground mb-4">Nenhuma importação encontrada</p>
-                  <Button variant="outline">Importar Agora</Button>
-                </div>
               )}
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={loadImportHistory}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Atualizar
-              </Button>
               
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" disabled={importHistory.length === 0}>
-                    <AlertTriangle className="h-4 w-4 mr-2" />
-                    Limpar Todos os Dados
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Limpar todos os dados</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Esta ação não pode ser desfeita. Isso removerá permanentemente todos os dados financeiros importados.
-                      O dashboard será redefinido para o estado vazio.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleClearAllData}>
-                      Sim, limpar tudo
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </CardFooter>
+              <div className="mt-6">
+                <Button 
+                  variant="destructive"
+                  onClick={handleClearAll}
+                  disabled={importHistory.length === 0 || isClearing}
+                  className="flex items-center"
+                >
+                  {isClearing ? (
+                    <>
+                      <Clock className="h-4 w-4 mr-2 animate-spin" />
+                      Limpando...
+                    </>
+                  ) : (
+                    <>
+                      <FileX className="h-4 w-4 mr-2" />
+                      Limpar Todos os Dados
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Esta ação removerá todos os dados financeiros importados e não pode ser desfeita.
+                </p>
+              </div>
+            </CardContent>
           </Card>
-
+        </TabsContent>
+        
+        <TabsContent value="general">
           <Card>
             <CardHeader>
-              <CardTitle>Detecção de Duplicidades</CardTitle>
+              <CardTitle>Configurações Gerais</CardTitle>
               <CardDescription>
-                Configurações para identificação automática de dados duplicados
+                Personalize as configurações do sistema
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Verificar por ID</p>
-                    <p className="text-sm text-muted-foreground">
-                      Impedir importação de IDs já existentes
-                    </p>
-                  </div>
-                  <input type="checkbox" checked readOnly className="h-4 w-4" />
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Notificações</p>
+                  <p className="text-sm text-muted-foreground">
+                    Receba alertas sobre suas finanças
+                  </p>
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Verificar por nome e período</p>
-                    <p className="text-sm text-muted-foreground">
-                      Detectar categorias com mesmo nome e período
-                    </p>
-                  </div>
-                  <input type="checkbox" checked readOnly className="h-4 w-4" />
+                <Switch />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Tema Escuro</p>
+                  <p className="text-sm text-muted-foreground">
+                    Ative o modo escuro para reduzir o cansaço visual
+                  </p>
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Solicitar confirmação</p>
-                    <p className="text-sm text-muted-foreground">
-                      Mostrar tela de confirmação antes da importação
-                    </p>
+                <Switch />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Backup Automático</p>
+                  <p className="text-sm text-muted-foreground">
+                    Faça backup automaticamente de seus dados
+                  </p>
+                </div>
+                <Switch />
+              </div>
+              
+              <div className="space-y-2">
+                <p className="font-medium">Moeda</p>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Input placeholder="R$" />
                   </div>
-                  <input type="checkbox" checked readOnly className="h-4 w-4" />
+                  <Button variant="secondary">Salvar</Button>
                 </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
-
-        <TabsContent value="preferencias" className="space-y-4">
+        
+        <TabsContent value="export">
           <Card>
             <CardHeader>
-              <CardTitle>Preferências Gerais</CardTitle>
+              <CardTitle>Configurações de Exportação</CardTitle>
               <CardDescription>
-                Configure as opções gerais do sistema
+                Defina como seus dados serão exportados
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Mês inicial</p>
-                    <p className="text-sm text-muted-foreground">
-                      Definir qual mês deve ser mostrado inicialmente
-                    </p>
-                  </div>
-                  <select className="border rounded p-1">
-                    <option>Janeiro</option>
-                    <option>Fevereiro</option>
-                    <option selected>Maio</option>
-                    <option>Dezembro</option>
-                  </select>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Incluir Gráficos</p>
+                  <p className="text-sm text-muted-foreground">
+                    Adicione gráficos aos relatórios exportados
+                  </p>
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Formato de data</p>
-                    <p className="text-sm text-muted-foreground">
-                      Como as datas devem ser exibidas
-                    </p>
-                  </div>
-                  <select className="border rounded p-1">
-                    <option selected>DD/MM/AAAA</option>
-                    <option>MM/DD/AAAA</option>
-                    <option>AAAA-MM-DD</option>
-                  </select>
+                <Switch defaultChecked />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Detalhamento Completo</p>
+                  <p className="text-sm text-muted-foreground">
+                    Inclua todas as subcategorias nos relatórios
+                  </p>
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Carregar dados automaticamente</p>
-                    <p className="text-sm text-muted-foreground">
-                      Carregar dados ao abrir o dashboard
-                    </p>
+                <Switch defaultChecked />
+              </div>
+              
+              <div className="space-y-2">
+                <p className="font-medium">Nome Padrão do Arquivo</p>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Input placeholder="financas_relatorio" defaultValue="financas_relatorio" />
                   </div>
-                  <input type="checkbox" checked readOnly className="h-4 w-4" />
+                  <Button variant="secondary">Salvar</Button>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="categorias" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Classificação de Categorias</CardTitle>
-              <CardDescription>
-                Configure quais IDs são considerados receitas ou despesas
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <p className="font-medium mb-2">IDs de Receitas</p>
-                  <div className="flex flex-wrap gap-2">
-                    <div className="px-3 py-1 bg-green-100 rounded-full text-green-800">016</div>
-                    <div className="px-3 py-1 bg-green-100 rounded-full text-green-800">017</div>
-                    <Button variant="outline" className="rounded-full text-xs h-7">
-                      Adicionar
-                    </Button>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="font-medium mb-2">IDs de Despesas</p>
-                  <div className="flex flex-wrap gap-2">
-                    <div className="px-3 py-1 bg-red-100 rounded-full text-red-800">001</div>
-                    <div className="px-3 py-1 bg-red-100 rounded-full text-red-800">002</div>
-                    <div className="px-3 py-1 bg-red-100 rounded-full text-red-800">003</div>
-                    <Button variant="outline" className="rounded-full text-xs h-7">
-                      Adicionar
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <p className="font-medium mb-2">Palavras-chave para identificar receitas</p>
-                  <div className="flex flex-wrap gap-2">
-                    <div className="px-3 py-1 bg-green-100 rounded-full text-green-800">receita</div>
-                    <div className="px-3 py-1 bg-green-100 rounded-full text-green-800">entrada</div>
-                    <div className="px-3 py-1 bg-green-100 rounded-full text-green-800">renda</div>
-                    <div className="px-3 py-1 bg-green-100 rounded-full text-green-800">salário</div>
-                    <Button variant="outline" className="rounded-full text-xs h-7">
-                      Adicionar
-                    </Button>
-                  </div>
-                </div>
+              
+              <div className="pt-4">
+                <Button className="w-full">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Exportar PDF Agora
+                </Button>
               </div>
             </CardContent>
           </Card>
