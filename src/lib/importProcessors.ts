@@ -1,6 +1,5 @@
 
-import { categoriesWithSubcategories, availableMonths } from '@/data/mockData';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 // Tipo para controlar importações
 export interface ImportRecord {
@@ -27,14 +26,19 @@ let importedData: ImportedFinancialData | null = null;
  */
 export const processCSVImport = async (csvContent: string): Promise<{ data: any, duplicatesFound: number }> => {
   try {
+    console.log("Starting CSV processing...");
+    
     // Dividir o conteúdo em linhas
     const lines = csvContent.split('\n');
+    console.log(`CSV has ${lines.length} lines`);
     
     // A primeira linha deve ser o cabeçalho
     const header = lines[0].split(';');
+    console.log("Header:", header);
     
     // Validar o formato do cabeçalho
     if (!validateCsvHeader(header)) {
+      console.error("CSV header validation failed");
       throw new Error('O formato do arquivo CSV não é compatível. Verifique o modelo esperado.');
     }
     
@@ -68,14 +72,10 @@ export const processCSVImport = async (csvContent: string): Promise<{ data: any,
         if (!month) continue;
         
         const valueStr = values[j + 3]?.trim();
-        if (!valueStr) {
-          monthlyValues[month] = 0;
-          continue;
-        }
-        
-        // Converter o valor considerando o formato especificado
-        monthlyValues[month] = convertFinancialValue(valueStr);
+        monthlyValues[month] = valueStr ? convertFinancialValue(valueStr) : 0;
       }
+      
+      console.log(`Processed line ${i}: ${id} - ${description} with values:`, monthlyValues);
       
       // Verificar duplicidade
       const isDuplicate = checkForDuplicate(id);
@@ -100,6 +100,8 @@ export const processCSVImport = async (csvContent: string): Promise<{ data: any,
       }
     }
     
+    console.log(`Processed ${categories.length} categories and ${subcategories.length} subcategories`);
+    
     // Organizar subcategorias dentro de suas categorias
     const organizedData = organizeHierarchy(categories, subcategories);
     
@@ -114,6 +116,7 @@ export const processCSVImport = async (csvContent: string): Promise<{ data: any,
     
     // Salvar no localStorage para persistência
     localStorage.setItem('financeImportedData', JSON.stringify(importedData));
+    console.log("Data saved to localStorage:", importedData);
     
     // Registrar a importação no histórico
     const importRecord: ImportRecord = {
@@ -150,6 +153,8 @@ export const processCSVImport = async (csvContent: string): Promise<{ data: any,
  * Calcula os totais mensais de receitas e despesas
  */
 const calculateMonthlyTotals = (categories: any[], subcategories: any[], months: string[]) => {
+  console.log("Calculating monthly totals for months:", months);
+  
   const monthlyTotals = months.map(month => {
     let receitas = 0;
     let despesas = 0;
@@ -183,6 +188,7 @@ const calculateMonthlyTotals = (categories: any[], subcategories: any[], months:
     };
   });
   
+  console.log("Monthly totals calculated:", monthlyTotals);
   return monthlyTotals;
 };
 
@@ -190,20 +196,47 @@ const calculateMonthlyTotals = (categories: any[], subcategories: any[], months:
  * Valida o cabeçalho do CSV conforme o formato esperado
  */
 const validateCsvHeader = (header: string[]): boolean => {
-  // Validação básica - deve ter pelo menos 15 colunas (id, descrição e 12 meses + coluna vazia inicial)
-  if (header.length < 15) return false;
+  console.log("Validating header:", header);
   
-  // Verificar os campos de ID e DESCRIÇÃO
-  if (header[1]?.trim().toUpperCase() !== 'ID' || 
-      header[2]?.trim().toUpperCase() !== 'DESCRIÇÃO') return false;
-      
-  // Verificar se os meses estão no formato correto (jan/25, fev/25, etc.)
-  const monthPattern = /^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\/\d{2}$/i;
-  for (let i = 3; i < 15; i++) {
-    const month = header[i]?.trim();
-    if (month && !monthPattern.test(month)) return false;
+  // Verificação básica - o header deve existir
+  if (!header || header.length < 3) {
+    console.error("Header too short");
+    return false;
   }
   
+  // Verificar os campos de ID e DESCRIÇÃO
+  let hasId = false;
+  let hasDescricao = false;
+  
+  for (let i = 0; i < header.length; i++) {
+    const field = header[i]?.trim().toUpperCase();
+    if (field === 'ID') hasId = true;
+    if (field === 'DESCRIÇÃO' || field === 'DESCRICAO') hasDescricao = true;
+  }
+  
+  if (!hasId || !hasDescricao) {
+    console.error("Missing ID or DESCRIÇÃO field");
+    return false;
+  }
+  
+  // Verificar se existem meses no header
+  const monthPattern = /^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\/\d{2}$/i;
+  let hasMonths = false;
+  
+  for (let i = 3; i < header.length; i++) {
+    const field = header[i]?.trim();
+    if (field && monthPattern.test(field)) {
+      hasMonths = true;
+      break;
+    }
+  }
+  
+  if (!hasMonths) {
+    console.error("No valid months found in header");
+    return false;
+  }
+  
+  console.log("Header validation successful");
   return true;
 };
 
@@ -215,6 +248,8 @@ const validateCsvHeader = (header: string[]): boolean => {
  * - ponto como separador de milhar
  */
 const convertFinancialValue = (valueStr: string): number => {
+  if (!valueStr || valueStr === '') return 0;
+  
   // Verificar se está entre parênteses (valor negativo)
   const isNegative = valueStr.startsWith('(') && valueStr.endsWith(')');
   
@@ -228,6 +263,8 @@ const convertFinancialValue = (valueStr: string): number => {
   
   // Converter para número
   const numValue = parseFloat(cleanValue);
+  
+  if (isNaN(numValue)) return 0;
   
   // Aplicar sinal negativo se necessário
   return isNegative ? -numValue : numValue;
@@ -247,12 +284,12 @@ const checkForDuplicate = (id: string): boolean => {
  */
 const determineRecordType = (id: string, description: string, values: number[]): 'income' | 'expense' => {
   // IDs de receita geralmente começam com 016 ou 017
-  if (id.startsWith('016') || id.startsWith('017')) {
+  if (id.startsWith('016') || id.startsWith('017') || id.startsWith('3')) {
     return 'income';
   }
   
   // Verificar pelo nome da categoria
-  const receiptKeywords = ['receita', 'entrada', 'renda', 'salário', 'vendas'];
+  const receiptKeywords = ['receita', 'entrada', 'renda', 'salário', 'vendas', 'faturamento', 'recebimentos'];
   for (const keyword of receiptKeywords) {
     if (description.toLowerCase().includes(keyword)) {
       return 'income';
@@ -260,7 +297,10 @@ const determineRecordType = (id: string, description: string, values: number[]):
   }
   
   // Se a maioria dos valores for positiva, provavelmente é receita
-  // Lógica mais elaborada poderia ser implementada aqui
+  const positiveValues = values.filter(v => v > 0).length;
+  if (positiveValues > values.length / 2 && values.length > 0) {
+    return 'income';
+  }
   
   // Por padrão, consideramos como despesa
   return 'expense';
@@ -362,6 +402,7 @@ export const removeImport = (importId: string): boolean => {
  */
 export const clearAllImportedData = (): boolean => {
   try {
+    console.log("Clearing all imported data");
     // Limpar histórico de importações
     localStorage.setItem('financeImportHistory', JSON.stringify([]));
     

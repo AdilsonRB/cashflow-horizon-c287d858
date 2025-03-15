@@ -64,24 +64,33 @@ const FinanceImport = () => {
       reader.onload = async (event) => {
         if (event.target?.result) {
           const csvContent = event.target.result as string;
+          console.log("CSV Content first 200 chars:", csvContent.substring(0, 200));
           
-          const { data, duplicatesFound } = await processCSVImport(csvContent);
-          
-          clearInterval(progressInterval);
-          
-          if (duplicatesFound > 0) {
-            setDuplicates(duplicatesFound);
-            setPreviewData(data);
-            setImportStatus('review');
-            setProgress(100);
-          } else {
-            setProgress(100);
-            setImportStatus('success');
+          try {
+            const { data, duplicatesFound } = await processCSVImport(csvContent);
+            console.log("Import processed successfully:", { data, duplicatesFound });
             
-            toast({
-              title: "Importação concluída",
-              description: "Seus dados financeiros foram importados com sucesso.",
-            });
+            clearInterval(progressInterval);
+            
+            if (duplicatesFound > 0) {
+              setDuplicates(duplicatesFound);
+              setPreviewData(data);
+              setImportStatus('review');
+              setProgress(100);
+            } else {
+              setProgress(100);
+              setImportStatus('success');
+              
+              toast({
+                title: "Importação concluída",
+                description: "Seus dados financeiros foram importados com sucesso.",
+              });
+            }
+          } catch (error) {
+            console.error("Error in processing CSV:", error);
+            clearInterval(progressInterval);
+            setErrorMessage('Erro ao processar o arquivo CSV. Verifique o formato.');
+            setImportStatus('error');
           }
         }
       };
